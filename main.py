@@ -1,4 +1,3 @@
-# main.py
 import os
 from datetime import datetime, timedelta
 from fastapi import FastAPI
@@ -6,6 +5,8 @@ from pydantic import BaseModel, field_validator
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from ai_service import classify_complaint
+from fastapi import FastAPI, HTTPException
+
 
 load_dotenv()
 
@@ -75,7 +76,26 @@ def submit_complaint(complaint: ComplaintRequest):
             }
         ]
     }
+@app.get("/complaints/{complaint_id}")
+def track_complaint(complaint_id: str):
+    doc = complaints_collection.find_one({"complaint_id": complaint_id})
 
+    if not doc:
+        raise HTTPException(status_code=404, detail="Complaint not found")
+
+    return {
+        "complaint_id": doc["complaint_id"],
+        "citizen_name": doc["citizen_name"],
+        "category": doc["category"],
+        "priority": doc["priority"],
+        "department": doc["department"],
+        "status": doc["status"],
+        "location": doc.get("location"),
+        "created_at": doc["created_at"],
+        "updated_at": doc["updated_at"],
+        "sla_deadline": doc["sla_deadline"],
+        "timeline": doc.get("status_logs", [])
+    }
     complaints_collection.insert_one(doc)
 
     return {
