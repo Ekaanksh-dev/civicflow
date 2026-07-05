@@ -14,6 +14,7 @@ import asyncio
 from contextlib import asynccontextmanager
 from typing import Optional
 from agent_service import agent_decide_action
+from fastapi.middleware.cors import CORSMiddleware
 
 
 load_dotenv()
@@ -116,7 +117,7 @@ def run_agent_review():
 async def agent_loop():
     while True:
         run_agent_review()
-        await asyncio.sleep(120)  # every 2 minutes
+        await asyncio.sleep(86400)  # every 2 minutes
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -127,6 +128,13 @@ async def lifespan(app: FastAPI):
     agent_task.cancel()
 
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # fine for hackathon; restrict in real production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 VALID_STATUSES = [
     "Submitted", "Categorized", "Assigned", "In Progress",
