@@ -52,10 +52,11 @@ Respond with ONLY a JSON object with these fields:
         messages=[{"role": "user", "content": prompt}],
         max_tokens=500
     )
-
+   
     message = response.choices[0].message
     raw_text = message.content or getattr(message, "reasoning_content", "") or ""
 
+    raw_text = raw_text.replace("```json", "").replace("```", "").strip()
     match = re.search(r"\{.*\}", raw_text, re.DOTALL)
     if match:
         try:

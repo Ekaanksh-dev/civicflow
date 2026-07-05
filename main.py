@@ -13,6 +13,8 @@ import difflib
 import asyncio
 from contextlib import asynccontextmanager
 from typing import Optional
+from agent_service import agent_decide_action
+
 
 load_dotenv()
 
@@ -91,14 +93,40 @@ def generate_complaint_id():
     })
     return f"CF-{today}-{count_today + 1:03d}"
 
+def run_agent_review():
+    now = datetime.utcnow()
+    active_statuses = ["Submitted", "Categorized", "Assigned", "In Progress", "Waiting for citizen response"]
+
+    at_risk = complaints_collection.find({"status": {"$in": active_statuses}})
+
+    reviewed = 0
+    for doc in at_risk:
+        decision = agent_decide_action(doc)
+
+        complaints_collection.update_one(
+            {"complaint_id": doc["complaint_id"]},
+            {"$push": {"agent_logs": decision}}
+        )
+        reviewed += 1
+
+    if reviewed > 0:
+        print(f"[AI Agent] Reviewed {reviewed} complaint(s) at {now}")
+
+
+async def agent_loop():
+    while True:
+        run_agent_review()
+        await asyncio.sleep(120)  # every 2 minutes
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(escalation_loop())
+    escalation_task = asyncio.create_task(escalation_loop())
+    agent_task = asyncio.create_task(agent_loop())
     yield
-    task.cancel()
+    escalation_task.cancel()
+    agent_task.cancel()
 
 app = FastAPI(lifespan=lifespan)
-
 
 VALID_STATUSES = [
     "Submitted", "Categorized", "Assigned", "In Progress",
@@ -392,3 +420,18 @@ def list_complaints(
         })
 
     return {"count": len(results), "complaints": results}
+
+@app.get("/complaints/{complaint_id}/agent-log")
+def get_agent_log(complaint_id: str):
+    doc = complaints_collection.find_one({"complaint_id": complaint_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Complaint not found")
+    return {
+        "complaint_id": complaint_id,
+        "agent_logs": doc.get("agent_logs", [])
+    }
+
+@app.post("/agent/run-now")
+def trigger_agent_review():
+    run_agent_review()
+    return {"message": "Agent review triggered"}
