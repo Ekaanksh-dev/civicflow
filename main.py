@@ -435,3 +435,17 @@ def get_agent_log(complaint_id: str):
 def trigger_agent_review():
     run_agent_review()
     return {"message": "Agent review triggered"}
+
+@app.get("/health")
+def health_check():
+    try:
+        client.admin.command("ping")
+        db_status = "connected"
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+
+    return {
+        "status": "ok",
+        "database": db_status,
+        "timestamp": datetime.utcnow()
+    }
