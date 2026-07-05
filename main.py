@@ -484,3 +484,37 @@ def search_complaints(
         })
 
     return {"count": len(results), "results": results}
+
+@app.get("/analytics")
+def get_analytics():
+    now = datetime.utcnow()
+
+    by_category = list(complaints_collection.aggregate([
+        {"$group": {"_id": "$category", "count": {"$sum": 1}}}
+    ]))
+
+    by_status = list(complaints_collection.aggregate([
+        {"$group": {"_id": "$status", "count": {"$sum": 1}}}
+    ]))
+
+    by_department = list(complaints_collection.aggregate([
+        {"$group": {"_id": "$department", "count": {"$sum": 1}}}
+    ]))
+
+    total_complaints = complaints_collection.count_documents({})
+
+    sla_breached = complaints_collection.count_documents({
+        "sla_deadline": {"$lt": now},
+        "status": {"$nin": ["Resolved", "Closed"]}
+    })
+
+    def format_group(group):
+        return {item["_id"] or "Unknown": item["count"] for item in group}
+
+    return {
+        "total_complaints": total_complaints,
+        "sla_breached_active": sla_breached,
+        "by_category": format_group(by_category),
+        "by_status": format_group(by_status),
+        "by_department": format_group(by_department)
+    }
