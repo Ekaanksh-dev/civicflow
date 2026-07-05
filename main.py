@@ -449,3 +449,38 @@ def health_check():
         "database": db_status,
         "timestamp": datetime.utcnow()
     }
+
+@app.get("/search")
+def search_complaints(
+    q: Optional[str] = None,
+    complaint_id: Optional[str] = None,
+    status: Optional[str] = None,
+    location: Optional[str] = None,
+    limit: int = 50
+):
+    query = {}
+
+    if complaint_id:
+        query["complaint_id"] = complaint_id
+    if status:
+        query["status"] = status
+    if location:
+        query["location"] = {"$regex": location, "$options": "i"}
+    if q:
+        query["complaint_text"] = {"$regex": q, "$options": "i"}
+
+    cursor = complaints_collection.find(query).sort("created_at", -1).limit(limit)
+
+    results = []
+    for doc in cursor:
+        results.append({
+            "complaint_id": doc.get("complaint_id"),
+            "citizen_name": doc.get("citizen_name"),
+            "complaint_text": doc.get("complaint_text"),
+            "category": doc.get("category"),
+            "status": doc.get("status"),
+            "location": doc.get("location"),
+            "created_at": doc.get("created_at")
+        })
+
+    return {"count": len(results), "results": results}
