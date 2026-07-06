@@ -15,7 +15,7 @@ from contextlib import asynccontextmanager
 from typing import Optional
 from agent_service import agent_decide_action
 from fastapi.middleware.cors import CORSMiddleware
-
+from email_service import send_complaint_email
 
 load_dotenv()
 
@@ -69,6 +69,7 @@ async def escalation_loop():
 class ComplaintRequest(BaseModel):
     citizen_name: str
     contact_info: str
+    email: str = None
     complaint_text: str
     location: str = None
 
@@ -181,6 +182,7 @@ def submit_complaint(complaint: ComplaintRequest):
         "complaint_id": complaint_id,
         "citizen_name": complaint.citizen_name,
         "contact_info": complaint.contact_info,
+        "email": complaint.email,
         "complaint_text": complaint.complaint_text,
         "category": category,
         "priority": priority,
@@ -195,6 +197,11 @@ def submit_complaint(complaint: ComplaintRequest):
     }
 
     complaints_collection.insert_one(doc)
+    email_sent = False
+    if complaint.email:
+        email_sent = send_complaint_email(
+            complaint.email, complaint_id, category, priority, doc["department"]
+        )
 
     return {
         "complaint_id": complaint_id,
@@ -202,7 +209,8 @@ def submit_complaint(complaint: ComplaintRequest):
         "priority": priority,
         "department": doc["department"],
         "status": final_status,
-        "duplicate_of": duplicate_id
+        "duplicate_of": duplicate_id,
+        "email_sent": email_sent
     }
 
 @app.get("/complaints/{complaint_id}")
