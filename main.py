@@ -24,8 +24,9 @@ app = FastAPI()
 client = MongoClient(os.getenv("MONGO_URI"))
 db = client["civicflow"]
 complaints_collection = db["complaints"]
+officers_collection = db["officers"]
 
-SLA_HOURS = {"High": 24, "Medium": 72, "Low": 168}  # 24hr, 3 days, 7 days
+SLA_HOURS = {"High": 24, "Medium": 72, "Low": 168} 
 DUPLICATE_WINDOW_DAYS = 7
 TEXT_SIMILARITY_THRESHOLD = 0.6
 
@@ -63,7 +64,7 @@ def run_escalation_check():
 async def escalation_loop():
     while True:
         run_escalation_check()
-        await asyncio.sleep(60)  # check every 60 seconds
+        await asyncio.sleep(60) 
 
 
 class ComplaintRequest(BaseModel):
@@ -118,7 +119,7 @@ def run_agent_review():
 async def agent_loop():
     while True:
         run_agent_review()
-        await asyncio.sleep(86400)  # every 2 minutes
+        await asyncio.sleep(43200)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -149,6 +150,11 @@ def submit_complaint(complaint: ComplaintRequest):
     category = classification.get("category", "Other")
     sla_hours = SLA_HOURS.get(priority, 72)
 
+    department = classification.get("department", "General")
+    assigned_officer_doc = assign_officer(department)
+    assigned_officer_id = assigned_officer_doc["officer_id"] if assigned_officer_doc else None
+    assigned_officer_name = assigned_officer_doc["name"] if assigned_officer_doc else None
+
     duplicate_id = find_duplicate(
         complaint.complaint_text, complaint.contact_info, complaint.location, category
     )
@@ -177,7 +183,17 @@ def submit_complaint(complaint: ComplaintRequest):
             "timestamp": now,
             "remarks": f"Auto-closed: duplicate of {duplicate_id}"
         })
-
+    if assigned_officer_id:
+        status_logs.append({
+            "old_status": "Submitted",
+            "new_status": "Assigned",
+            "updated_by": "system",
+            "timestamp": now,
+            "remarks": f"Auto-assigned to {assigned_officer_name}"
+        })
+        if final_status == "Submitted":  # don't override if it was set to Closed (duplicate)
+            final_status = "Assigned"
+    
     doc = {
         "complaint_id": complaint_id,
         "citizen_name": complaint.citizen_name,
@@ -187,6 +203,9 @@ def submit_complaint(complaint: ComplaintRequest):
         "category": category,
         "priority": priority,
         "department": classification.get("department", "General"),
+        "department": department,
+        "assigned_officer": assigned_officer_id,
+        "assigned_officer_name": assigned_officer_name,
         "status": final_status,
         "location": complaint.location,
         "created_at": now,
@@ -210,7 +229,8 @@ def submit_complaint(complaint: ComplaintRequest):
         "department": doc["department"],
         "status": final_status,
         "duplicate_of": duplicate_id,
-        "email_sent": email_sent
+        "email_sent": email_sent,
+        "assigned_officer": assigned_officer_name
     }
 
 @app.get("/complaints/{complaint_id}")
@@ -534,3 +554,24 @@ def get_analytics():
         "by_status": format_group(by_status),
         "by_department": format_group(by_department)
     }
+
+def assign_officer(department: str):
+    officers = list(officers_collection.find({"department": department}))
+    if not officers:
+        return None
+
+    active_statuses = ["Submitted", "Categorized", "Assigned", "In Progress", "Waiting for citizen response"]
+
+    least_busy_officer = None
+    lowest_count = None
+
+    for officer in officers:
+        active_count = complaints_collection.count_documents({
+            "assigned_officer": officer["officer_id"],
+            "status": {"$in": active_statuses}
+        })
+        if lowest_count is None or active_count < lowest_count:
+            lowest_count = active_count
+            least_busy_officer = officer
+
+    return least_busy_officer
