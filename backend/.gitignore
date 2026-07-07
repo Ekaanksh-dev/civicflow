@@ -1,4 +1,17 @@
-venv/
+# Python
 __pycache__/
-.env
+*.py[cod]
+*$py.class
 *.pyc
+.ipynb_checkpoints
+
+# Virtual environments
+venv/
+.venv/
+
+# Environment variables
+.env
+
+# OS
+.DS_Store
+Thumbs.db
