@@ -574,3 +574,9 @@ def assign_officer(department: str):
             least_busy_officer = officer
 
     return least_busy_officer
+
+@app.get("/version")
+def version():
+    return {
+        "version": "render-test-july-7"
+    }
