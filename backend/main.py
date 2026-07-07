@@ -1,24 +1,18 @@
 import os
 from datetime import datetime, timedelta
-from fastapi import FastAPI
-from pydantic import BaseModel, field_validator
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, field_validator, EmailStr
 from dotenv import load_dotenv
 from pymongo import MongoClient
 from ai_service import classify_complaint
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, field_validator
 from apscheduler.schedulers.background import BackgroundScheduler
-from pydantic import BaseModel, field_validator
 import difflib
 import asyncio
 from contextlib import asynccontextmanager
 from typing import Optional
-from agent_service import agent_decide_action
+load_dotenv()
 from fastapi.middleware.cors import CORSMiddleware
 from email_service import send_complaint_email
-
-load_dotenv()
-
 app = FastAPI()
 
 client = MongoClient(os.getenv("MONGO_URI"))
@@ -70,7 +64,7 @@ async def escalation_loop():
 class ComplaintRequest(BaseModel):
     citizen_name: str
     contact_info: str
-    email: str = None
+    email:EmailStr  
     complaint_text: str
     location: str = None
 
@@ -537,6 +531,10 @@ def get_analytics():
         {"$group": {"_id": "$department", "count": {"$sum": 1}}}
     ]))
 
+    by_priority = list(complaints_collection.aggregate([
+        {"$group": {"_id": "$priority", "count": {"$sum": 1}}}
+    ]))
+
     total_complaints = complaints_collection.count_documents({})
 
     sla_breached = complaints_collection.count_documents({
@@ -552,7 +550,8 @@ def get_analytics():
         "sla_breached_active": sla_breached,
         "by_category": format_group(by_category),
         "by_status": format_group(by_status),
-        "by_department": format_group(by_department)
+        "by_department": format_group(by_department),
+        "by_priority": format_group(by_priority)
     }
 
 def assign_officer(department: str):

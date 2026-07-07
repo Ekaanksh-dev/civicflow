@@ -8,10 +8,13 @@ load_dotenv()
 
 client = OpenAI(
     api_key=os.getenv("ANTHROPIC_API_KEY"),
-    base_url=os.getenv("ANTHROPIC_BASE_URL")
+    base_url=os.getenv("ANTHROPIC_BASE_URL"),
+    max_retries=0,
+    timeout=15.0
 )
 
 MODEL = os.getenv("ANTHROPIC_MODEL")
+
 
 def classify_complaint(complaint_text: str) -> dict:
     prompt = f"""You are a civic complaint classifier. Given a citizen's complaint, 
@@ -24,25 +27,25 @@ Complaint: "{complaint_text}"
 
 Respond with ONLY the JSON object, nothing else."""
 
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=1000
-    )
+    try:
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=300
+        )
 
-    message = response.choices[0].message
-    # MiniMax reasoning models may put the answer in reasoning_content if content is empty
-    raw_text = message.content or message.reasoning_content or ""
+        message = response.choices[0].message
+        raw_text = message.content or getattr(message, "reasoning_content", "") or ""
+        raw_text = raw_text.strip().replace("```json", "").replace("```", "").strip()
 
-    # Extract the JSON object even if it's surrounded by reasoning text
-    match = re.search(r"\{[^{}]*\}", raw_text, re.DOTALL)
-
-    if match:
-        try:
+        match = re.search(r"\{[^{}]*\}", raw_text, re.DOTALL)
+        if match:
             result = json.loads(match.group())
-        except json.JSONDecodeError:
+        else:
             result = {"category": "Other", "priority": "Medium", "department": "General"}
-    else:
+
+    except Exception as e:
+        print(f"[AI Classify] Failed or timed out: {e}")
         result = {"category": "Other", "priority": "Medium", "department": "General"}
 
     return result
