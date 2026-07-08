@@ -445,8 +445,6 @@ def list_complaints(
             "department": doc.get("department"),
             "status": doc.get("status"),
             "location": doc.get("location"),
-            "assigned_officer": doc.get("assigned_officer"),
-            "assigned_officer_name": doc.get("assigned_officer_name"),
             "created_at": doc.get("created_at"),
             "sla_deadline": doc.get("sla_deadline"),
             "duplicate_of": doc.get("duplicate_of")
