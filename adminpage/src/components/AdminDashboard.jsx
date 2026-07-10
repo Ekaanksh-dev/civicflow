@@ -1,42 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../api";
 import { getStatusStyle, formatDateTime, isSLABreached } from "../utils";
-import Analytics from "./Analytics";
 import { 
-  Lock, 
-  Unlock, 
-  Eye, 
-  EyeOff, 
   Search, 
-  SlidersHorizontal,
   X,
-  FileText,
   User,
   Phone,
-  Mail,
   MapPin,
-  Calendar,
   Clock,
   AlertTriangle,
   Send,
   Sparkles,
   Inbox,
-  FolderOpen,
   RotateCw,
-  CheckCircle,
-  ChevronUp,
-  ChevronDown
 } from "lucide-react";
 
 export default function AdminDashboard() {
-  // NEW FEATURE: Password Gate state
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
-  const [shouldShake, setShouldShake] = useState(false);
-
-  const [activeTab, setActiveTab] = useState("list"); // "list" | "analytics"
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -57,7 +36,7 @@ export default function AdminDashboard() {
   // Selected complaint for modal details
   const [selectedId, setSelectedId] = useState(null);
 
-  // New Dashboard States
+  // Dashboard States
   const [toast, setToast] = useState(null);
   const [analyticsData, setAnalyticsData] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: "created_at", direction: "desc" });
@@ -114,20 +93,6 @@ export default function AdminDashboard() {
     return key ? analyticsData.by_priority[key] : 0;
   };
 
-  const handlePasswordSubmit = (e) => {
-    e.preventDefault();
-    setPasswordError("");
-    setShouldShake(false);
-    
-    if (password === "civicflow2026admin") {
-      setIsAdminAuthenticated(true);
-    } else {
-      setPasswordError("Incorrect password");
-      setShouldShake(true);
-      setTimeout(() => setShouldShake(false), 500);
-    }
-  };
-
   const loadComplaints = async () => {
     setLoading(true);
     setError("");
@@ -154,23 +119,13 @@ export default function AdminDashboard() {
     showToast("Dashboard data refreshed");
   };
 
-  const handleLogout = () => {
-    setIsAdminAuthenticated(false);
-    setPassword("");
-    showToast("Logged out successfully");
-  };
+  useEffect(() => {
+    loadAnalyticsData();
+  }, []);
 
   useEffect(() => {
-    if (isAdminAuthenticated) {
-      loadAnalyticsData();
-    }
-  }, [isAdminAuthenticated]);
-
-  useEffect(() => {
-    if (isAdminAuthenticated && activeTab === "list") {
-      loadComplaints();
-    }
-  }, [filters, isSearchActive, activeTab, isAdminAuthenticated]);
+    loadComplaints();
+  }, [filters, isSearchActive]);
 
   const sortedComplaints = React.useMemo(() => {
     let sortableItems = [...complaints];
@@ -231,62 +186,6 @@ export default function AdminDashboard() {
     setIsSearchActive(false);
   };
 
-  // PASSWORD GATE RENDER
-  if (!isAdminAuthenticated) {
-    return (
-      <div className="password-gate-overlay">
-        <div className={`password-gate-card ${shouldShake ? "card-shake" : ""}`} id="admin-password-gate-card">
-          <div className="password-gate-icon-wrapper">
-            <Lock size={28} />
-          </div>
-          <h2 style={{ fontSize: "1.5rem", fontWeight: 800 }}>Admin Access</h2>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.95rem", marginBottom: "24px" }}>
-            Enter password to continue
-          </p>
-
-          <form onSubmit={handlePasswordSubmit}>
-            <div className="form-group" style={{ marginBottom: "20px" }}>
-              <div className="password-input-wrapper">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  className={`form-input ${passwordError ? "error" : ""}`}
-                  placeholder="Enter Password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setPasswordError("");
-                  }}
-                  id="admin-password-input"
-                  style={{ paddingRight: "44px" }}
-                />
-                <button
-                  type="button"
-                  className="password-toggle-btn"
-                  onClick={() => setShowPassword(!showPassword)}
-                  id="btn-password-toggle"
-                  title={showPassword ? "Hide Password" : "Show Password"}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-              {passwordError && (
-                <span className="error-message" id="password-error-message">
-                  <AlertTriangle size={14} />
-                  {passwordError}
-                </span>
-              )}
-            </div>
-
-            <button type="submit" className="btn btn-primary" id="btn-password-enter">
-              <Unlock size={16} style={{ marginRight: "4px" }} />
-              Enter Console
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="admin-container">
       <div className="admin-header-row">
@@ -294,317 +193,282 @@ export default function AdminDashboard() {
           <h1 className="page-title">Admin Operations Console</h1>
           <p className="page-subtitle">Manage filed grievances, verify AI categorizations, and view platform performance insights.</p>
         </div>
+      </div>
 
-        <div className="analytics-tab-row">
-          <button
-            className={`analytics-tab-btn ${activeTab === "list" ? "active" : ""}`}
-            onClick={() => setActiveTab("list")}
-            id="tab-admin-list"
+      {/* Filters & Search */}
+      <div className="filters-card">
+        <form onSubmit={handleSearchSubmit} className="search-wrapper" style={{ marginBottom: "1.5rem" }} id="admin-search-form">
+          <select
+            className="form-input"
+            style={{ width: "130px", flexShrink: 0, paddingRight: "1.5rem" }}
+            value={searchType}
+            onChange={(e) => setSearchType(e.target.value)}
+            id="select-search-type"
           >
-            <FolderOpen size={16} />
-            Grievances
-          </button>
+            <option value="q">Keyword</option>
+            <option value="location">Location</option>
+          </select>
+          <div style={{ position: "relative", flex: 1, display: "flex" }}>
+            <Search size={18} style={{ position: "absolute", left: "14px", top: "14px", color: "var(--text-light)" }} />
+            <input
+              type="text"
+              className="form-input"
+              placeholder={searchType === "location" ? "Search by location..." : "Search complaints..."}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              id="input-admin-search"
+              style={{ paddingLeft: "42px" }}
+            />
+          </div>
+          <button type="submit" className="btn btn-primary" id="btn-admin-search-submit">Search</button>
+          {isSearchActive && (
+            <button type="button" className="btn btn-outline" onClick={handleClearSearch} id="btn-admin-search-clear">
+              Clear
+            </button>
+          )}
           <button
-            className={`analytics-tab-btn ${activeTab === "analytics" ? "active" : ""}`}
-            onClick={() => setActiveTab("analytics")}
-            id="tab-admin-analytics"
+            type="button"
+            className="btn btn-outline"
+            onClick={handleRefresh}
+            id="btn-admin-refresh"
+            title="Refresh complaints list"
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
           >
-            <Sparkles size={16} />
-            Analytics
+            <RotateCw size={14} className={loading ? "spin" : ""} style={{ animation: loading ? "spin 1s linear infinite" : "none" }} />
+            <span>Refresh</span>
           </button>
-          <button
-            className="analytics-tab-btn"
-            onClick={handleLogout}
-            style={{ color: "var(--danger)", display: "inline-flex", alignItems: "center", gap: "4px" }}
-            id="btn-admin-logout"
-            title="Lock operations console"
-          >
-            <Lock size={14} />
-            Logout
-          </button>
+        </form>
+
+        <div className="filters-grid" id="admin-filters-row">
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label" htmlFor="filter-status" style={{ fontSize: "0.8rem" }}>
+              Status
+            </label>
+            <select
+              id="filter-status"
+              name="status"
+              className="form-input"
+              value={filters.status}
+              onChange={handleFilterChange}
+            >
+              <option value="">All Statuses ({analyticsData?.total_complaints || 0})</option>
+              <option value="Submitted">Submitted ({getStatusCount("Submitted")})</option>
+              <option value="Categorized">Categorized ({getStatusCount("Categorized")})</option>
+              <option value="Assigned">Assigned ({getStatusCount("Assigned")})</option>
+              <option value="In Progress">In Progress ({getStatusCount("In Progress")})</option>
+              <option value="Waiting for citizen response">Waiting for citizen response ({getStatusCount("Waiting for citizen response")})</option>
+              <option value="Resolved">Resolved ({getStatusCount("Resolved")})</option>
+              <option value="Closed">Closed ({getStatusCount("Closed")})</option>
+              <option value="Escalated">Escalated ({getStatusCount("Escalated")})</option>
+            </select>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label" htmlFor="filter-category" style={{ fontSize: "0.8rem" }}>
+              Category
+            </label>
+            <select
+              id="filter-category"
+              name="category"
+              className="form-input"
+              value={filters.category}
+              onChange={handleFilterChange}
+            >
+              <option value="">All Categories ({analyticsData?.total_complaints || 0})</option>
+              <option value="Water">Water ({getCategoryCount("Water")})</option>
+              <option value="Road">Road ({getCategoryCount("Road")})</option>
+              <option value="Sanitation">Sanitation ({getCategoryCount("Sanitation")})</option>
+              <option value="Electricity">Electricity ({getCategoryCount("Electricity")})</option>
+              <option value="Other">Other ({getCategoryCount("Other")})</option>
+            </select>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label" htmlFor="filter-department" style={{ fontSize: "0.8rem" }}>
+              Department
+            </label>
+            <select
+              id="filter-department"
+              name="department"
+              className="form-input"
+              value={filters.department}
+              onChange={handleFilterChange}
+            >
+              <option value="">All Departments ({analyticsData?.total_complaints || 0})</option>
+              <option value="Water Board">Water Board ({getDeptCount("Water Board")})</option>
+              <option value="Roads Department">Roads Department ({getDeptCount("Roads Department")})</option>
+              <option value="Sanitation Department">Sanitation Department ({getDeptCount("Sanitation Department")})</option>
+              <option value="Electricity Board">Electricity Board ({getDeptCount("Electricity Board")})</option>
+              <option value="General">General ({getDeptCount("General")})</option>
+            </select>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label" htmlFor="filter-priority" style={{ fontSize: "0.8rem" }}>
+              Priority
+            </label>
+            <select
+              id="filter-priority"
+              name="priority"
+              className="form-input"
+              value={filters.priority}
+              onChange={handleFilterChange}
+            >
+              <option value="">All Priorities ({analyticsData?.total_complaints || 0})</option>
+              <option value="High">High ({getPriorityCount("High")})</option>
+              <option value="Medium">Medium ({getPriorityCount("Medium")})</option>
+              <option value="Low">Low ({getPriorityCount("Low")})</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {activeTab === "analytics" ? (
-        <Analytics />
-      ) : (
-        <>
-          {/* Filters & Search */}
-          <div className="filters-card">
-            <form onSubmit={handleSearchSubmit} className="search-wrapper" style={{ marginBottom: "1.5rem" }} id="admin-search-form">
-              <select
-                className="form-input"
-                style={{ width: "130px", flexShrink: 0, paddingRight: "1.5rem" }}
-                value={searchType}
-                onChange={(e) => setSearchType(e.target.value)}
-                id="select-search-type"
-              >
-                <option value="q">Keyword</option>
-                <option value="location">Location</option>
-              </select>
-              <div style={{ position: "relative", flex: 1, display: "flex" }}>
-                <Search size={18} style={{ position: "absolute", left: "14px", top: "14px", color: "var(--text-light)" }} />
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder={searchType === "location" ? "Search by location..." : "Search complaints..."}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  id="input-admin-search"
-                  style={{ paddingLeft: "42px" }}
-                />
-              </div>
-              <button type="submit" className="btn btn-primary" id="btn-admin-search-submit">Search</button>
-              {isSearchActive && (
-                <button type="button" className="btn btn-outline" onClick={handleClearSearch} id="btn-admin-search-clear">
-                  Clear
-                </button>
-              )}
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={handleRefresh}
-                id="btn-admin-refresh"
-                title="Refresh complaints list"
-                style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
-              >
-                <RotateCw size={14} className={loading ? "spin" : ""} style={{ animation: loading ? "spin 1s linear infinite" : "none" }} />
-                <span>Refresh</span>
-              </button>
-            </form>
-
-            <div className="filters-grid" id="admin-filters-row">
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" htmlFor="filter-status" style={{ fontSize: "0.8rem" }}>
-                  Status
-                </label>
-                <select
-                  id="filter-status"
-                  name="status"
-                  className="form-input"
-                  value={filters.status}
-                  onChange={handleFilterChange}
-                >
-                  <option value="">All Statuses ({analyticsData?.total_complaints || 0})</option>
-                  <option value="Submitted">Submitted ({getStatusCount("Submitted")})</option>
-                  <option value="Categorized">Categorized ({getStatusCount("Categorized")})</option>
-                  <option value="Assigned">Assigned ({getStatusCount("Assigned")})</option>
-                  <option value="In Progress">In Progress ({getStatusCount("In Progress")})</option>
-                  <option value="Waiting for citizen response">Waiting for citizen response ({getStatusCount("Waiting for citizen response")})</option>
-                  <option value="Resolved">Resolved ({getStatusCount("Resolved")})</option>
-                  <option value="Closed">Closed ({getStatusCount("Closed")})</option>
-                  <option value="Escalated">Escalated ({getStatusCount("Escalated")})</option>
-                </select>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" htmlFor="filter-category" style={{ fontSize: "0.8rem" }}>
-                  Category
-                </label>
-                <select
-                  id="filter-category"
-                  name="category"
-                  className="form-input"
-                  value={filters.category}
-                  onChange={handleFilterChange}
-                >
-                  <option value="">All Categories ({analyticsData?.total_complaints || 0})</option>
-                  <option value="Water">Water ({getCategoryCount("Water")})</option>
-                  <option value="Road">Road ({getCategoryCount("Road")})</option>
-                  <option value="Sanitation">Sanitation ({getCategoryCount("Sanitation")})</option>
-                  <option value="Electricity">Electricity ({getCategoryCount("Electricity")})</option>
-                  <option value="Other">Other ({getCategoryCount("Other")})</option>
-                </select>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" htmlFor="filter-department" style={{ fontSize: "0.8rem" }}>
-                  Department
-                </label>
-                <select
-                  id="filter-department"
-                  name="department"
-                  className="form-input"
-                  value={filters.department}
-                  onChange={handleFilterChange}
-                >
-                  <option value="">All Departments ({analyticsData?.total_complaints || 0})</option>
-                  <option value="Water Board">Water Board ({getDeptCount("Water Board")})</option>
-                  <option value="Roads Department">Roads Department ({getDeptCount("Roads Department")})</option>
-                  <option value="Sanitation Department">Sanitation Department ({getDeptCount("Sanitation Department")})</option>
-                  <option value="Electricity Board">Electricity Board ({getDeptCount("Electricity Board")})</option>
-                  <option value="General">General ({getDeptCount("General")})</option>
-                </select>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label" htmlFor="filter-priority" style={{ fontSize: "0.8rem" }}>
-                  Priority
-                </label>
-                <select
-                  id="filter-priority"
-                  name="priority"
-                  className="form-input"
-                  value={filters.priority}
-                  onChange={handleFilterChange}
-                >
-                  <option value="">All Priorities ({analyticsData?.total_complaints || 0})</option>
-                  <option value="High">High ({getPriorityCount("High")})</option>
-                  <option value="Medium">Medium ({getPriorityCount("Medium")})</option>
-                  <option value="Low">Low ({getPriorityCount("Low")})</option>
-                </select>
-              </div>
-            </div>
+      {error && (
+        <div className="duplicate-alert" style={{ backgroundColor: "var(--danger-light)", borderLeft: "4px solid var(--danger)", color: "var(--danger)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <AlertTriangle size={18} />
+            <span>{error}</span>
           </div>
-
-          {error && (
-            <div className="duplicate-alert" style={{ backgroundColor: "var(--danger-light)", borderLeft: "4px solid var(--danger)", color: "var(--danger)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <AlertTriangle size={18} />
-                <span>{error}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Table Container */}
-          <div className="table-responsive">
-            {loading ? (
-              <div className="skeleton-card" style={{ border: "none" }}>
-                <div className="skeleton-row" style={{ width: "100%", height: "2.5rem" }}></div>
-                <div className="skeleton-row" style={{ width: "100%", height: "2rem" }}></div>
-                <div className="skeleton-row" style={{ width: "100%", height: "2rem" }}></div>
-                <div className="skeleton-row" style={{ width: "100%", height: "2rem" }}></div>
-              </div>
-            ) : complaints.length > 0 ? (
-              <>
-                <table className="admin-table" id="admin-complaints-table">
-                  <thead>
-                    <tr>
-                      <th>Grievance ID</th>
-                      <th>Citizen</th>
-                      <th>Category</th>
-                      <th>Priority</th>
-                      <th>Department</th>
-                      <th>Officer</th>
-                      <th>Status</th>
-                      <th>Filed Date</th>
-                      <th>SLA Target</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {complaints.map((item) => {
-                      const style = getStatusStyle(item.status);
-                      const isBreached = isSLABreached(item.sla_deadline, item.status);
-                      return (
-                        <tr
-                          key={item.complaint_id}
-                          className={isBreached ? "row-breached" : ""}
-                          onClick={() => setSelectedId(item.complaint_id)}
-                          title="Click to view details and AI actions"
-                        >
-                          <td className="strong">{item.complaint_id}</td>
-                          <td>{item.citizen_name}</td>
-                          <td>{item.category || "N/A"}</td>
-                          <td>{item.priority || "N/A"}</td>
-                          <td>{item.department || "N/A"}</td>
-                          <td>{item.assigned_officer_name || "Unassigned"}</td>
-                          <td>
-                            <span
-                              className="badge"
-                              style={{
-                                backgroundColor: style.bg,
-                                color: style.text,
-                                border: `1px solid ${style.border}`,
-                              }}
-                            >
-                              {item.status}
-                            </span>
-                          </td>
-                          <td>{formatDateTime(item.created_at)}</td>
-                          <td style={{ color: isBreached ? "var(--danger)" : "inherit", fontWeight: isBreached ? 700 : "inherit" }}>
-                            {formatDateTime(item.sla_deadline)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-
-                <div className="admin-mobile-cards" id="admin-complaints-mobile-cards">
-                  {complaints.map((item) => {
-                    const style = getStatusStyle(item.status);
-                    const isBreached = isSLABreached(item.sla_deadline, item.status);
-                    return (
-                      <div
-                        key={item.complaint_id}
-                        className={`admin-card-item ${isBreached ? "row-breached" : ""}`}
-                        onClick={() => setSelectedId(item.complaint_id)}
-                        title="Click to view details and AI actions"
-                      >
-                        <div className="admin-card-header">
-                          <span className="admin-card-title">{item.complaint_id}</span>
-                          <span
-                            className="badge"
-                            style={{
-                              backgroundColor: style.bg,
-                              color: style.text,
-                              border: `1px solid ${style.border}`,
-                            }}
-                          >
-                            {item.status}
-                          </span>
-                        </div>
-                        <div className="admin-card-row">
-                          <span className="admin-card-label">Citizen</span>
-                          <span className="admin-card-value">{item.citizen_name}</span>
-                        </div>
-                        <div className="admin-card-row">
-                          <span className="admin-card-label">Category</span>
-                          <span className="admin-card-value">{item.category || "N/A"}</span>
-                        </div>
-                        <div className="admin-card-row">
-                          <span className="admin-card-label">Priority</span>
-                          <span className="admin-card-value">{item.priority || "N/A"}</span>
-                        </div>
-                        <div className="admin-card-row">
-                          <span className="admin-card-label">Department</span>
-                          <span className="admin-card-value">{item.department || "N/A"}</span>
-                        </div>
-                        <div className="admin-card-row">
-                          <span className="admin-card-label">Officer</span>
-                          <span className="admin-card-value">{item.assigned_officer_name || "Unassigned"}</span>
-                        </div>
-                        <div className="admin-card-row">
-                          <span className="admin-card-label">Filed Date</span>
-                          <span className="admin-card-value">{formatDateTime(item.created_at)}</span>
-                        </div>
-                        <div className="admin-card-row">
-                          <span className="admin-card-label">SLA Target</span>
-                          <span
-                            className="admin-card-value"
-                            style={{ color: isBreached ? "var(--danger)" : "inherit", fontWeight: isBreached ? 700 : "inherit" }}
-                          >
-                            {formatDateTime(item.sla_deadline)}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            ) : (
-              /* EMPTY STATE */
-              <div className="empty-state">
-                <Inbox size={48} className="empty-state-icon" />
-                <h3 style={{ fontSize: "1.1rem", fontWeight: 700 }}>No Grievances Found</h3>
-                <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", maxWidth: "320px", margin: "0 auto" }}>
-                  We couldn't find any complaints matching your criteria. Try adjusting the search text or filtering categories.
-                </p>
-              </div>
-            )}
-          </div>
-        </>
+        </div>
       )}
+
+      {/* Table Container */}
+      <div className="table-responsive">
+        {loading ? (
+          <div className="skeleton-card" style={{ border: "none" }}>
+            <div className="skeleton-row" style={{ width: "100%", height: "2.5rem" }}></div>
+            <div className="skeleton-row" style={{ width: "100%", height: "2rem" }}></div>
+            <div className="skeleton-row" style={{ width: "100%", height: "2rem" }}></div>
+            <div className="skeleton-row" style={{ width: "100%", height: "2rem" }}></div>
+          </div>
+        ) : complaints.length > 0 ? (
+          <>
+            <table className="admin-table" id="admin-complaints-table">
+              <thead>
+                <tr>
+                  <th>Grievance ID</th>
+                  <th>Citizen</th>
+                  <th>Category</th>
+                  <th>Priority</th>
+                  <th>Department</th>
+                  <th>Officer</th>
+                  <th>Status</th>
+                  <th>Filed Date</th>
+                  <th>SLA Target</th>
+                </tr>
+              </thead>
+              <tbody>
+                {complaints.map((item) => {
+                  const style = getStatusStyle(item.status);
+                  const isBreached = isSLABreached(item.sla_deadline, item.status);
+                  return (
+                    <tr
+                      key={item.complaint_id}
+                      className={isBreached ? "row-breached" : ""}
+                      onClick={() => setSelectedId(item.complaint_id)}
+                      title="Click to view details and AI actions"
+                    >
+                      <td className="strong">{item.complaint_id}</td>
+                      <td>{item.citizen_name}</td>
+                      <td>{item.category || "N/A"}</td>
+                      <td>{item.priority || "N/A"}</td>
+                      <td>{item.department || "N/A"}</td>
+                      <td>{item.assigned_officer_name || "Unassigned"}</td>
+                      <td>
+                        <span
+                          className="badge"
+                          style={{
+                            backgroundColor: style.bg,
+                            color: style.text,
+                            border: `1px solid ${style.border}`,
+                          }}
+                        >
+                          {item.status}
+                        </span>
+                      </td>
+                      <td>{formatDateTime(item.created_at)}</td>
+                      <td style={{ color: isBreached ? "var(--danger)" : "inherit", fontWeight: isBreached ? 700 : "inherit" }}>
+                        {formatDateTime(item.sla_deadline)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            <div className="admin-mobile-cards" id="admin-complaints-mobile-cards">
+              {complaints.map((item) => {
+                const style = getStatusStyle(item.status);
+                const isBreached = isSLABreached(item.sla_deadline, item.status);
+                return (
+                  <div
+                    key={item.complaint_id}
+                    className={`admin-card-item ${isBreached ? "row-breached" : ""}`}
+                    onClick={() => setSelectedId(item.complaint_id)}
+                    title="Click to view details and AI actions"
+                  >
+                    <div className="admin-card-header">
+                      <span className="admin-card-title">{item.complaint_id}</span>
+                      <span
+                        className="badge"
+                        style={{
+                          backgroundColor: style.bg,
+                          color: style.text,
+                          border: `1px solid ${style.border}`,
+                        }}
+                      >
+                        {item.status}
+                      </span>
+                    </div>
+                    <div className="admin-card-row">
+                      <span className="admin-card-label">Citizen</span>
+                      <span className="admin-card-value">{item.citizen_name}</span>
+                    </div>
+                    <div className="admin-card-row">
+                      <span className="admin-card-label">Category</span>
+                      <span className="admin-card-value">{item.category || "N/A"}</span>
+                    </div>
+                    <div className="admin-card-row">
+                      <span className="admin-card-label">Priority</span>
+                      <span className="admin-card-value">{item.priority || "N/A"}</span>
+                    </div>
+                    <div className="admin-card-row">
+                      <span className="admin-card-label">Department</span>
+                      <span className="admin-card-value">{item.department || "N/A"}</span>
+                    </div>
+                    <div className="admin-card-row">
+                      <span className="admin-card-label">Officer</span>
+                      <span className="admin-card-value">{item.assigned_officer_name || "Unassigned"}</span>
+                    </div>
+                    <div className="admin-card-row">
+                      <span className="admin-card-label">Filed Date</span>
+                      <span className="admin-card-value">{formatDateTime(item.created_at)}</span>
+                    </div>
+                    <div className="admin-card-row">
+                      <span className="admin-card-label">SLA Target</span>
+                      <span
+                        className="admin-card-value"
+                        style={{ color: isBreached ? "var(--danger)" : "inherit", fontWeight: isBreached ? 700 : "inherit" }}
+                      >
+                        {formatDateTime(item.sla_deadline)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          /* EMPTY STATE */
+          <div className="empty-state">
+            <Inbox size={48} className="empty-state-icon" />
+            <h3 style={{ fontSize: "1.1rem", fontWeight: 700 }}>No Grievances Found</h3>
+            <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", maxWidth: "320px", margin: "0 auto" }}>
+              We couldn't find any complaints matching your criteria. Try adjusting the search text or filtering categories.
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Drawer details */}
       {selectedId && (

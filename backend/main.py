@@ -1,3 +1,4 @@
+
 import os
 from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException
@@ -8,6 +9,7 @@ from ai_service import classify_complaint
 from apscheduler.schedulers.background import BackgroundScheduler
 import difflib
 import asyncio
+from ai_service import client, MODEL
 from contextlib import asynccontextmanager
 from typing import Optional
 load_dotenv()
@@ -583,3 +585,69 @@ def version():
     return {
         "version": "render-test-july-7"
     }
+
+class RAGQueryRequest(BaseModel):
+    query: str
+class CitizenAskRequest(BaseModel):
+    query: str
+    complaint_id: Optional[str] = None
+
+CIVICFLOW_FAQ = """
+CivicFlow General Information:
+- Categories handled: Water (Water Board), Road (Roads Department), 
+  Sanitation (Sanitation Department), Electricity (Electricity Board), Other (General)
+- To report a new complaint: use the "Submit a Complaint" page, provide your name, 
+  phone number, email, complaint description, and location.
+- SLA (resolution timeframes): High priority = 24 hours, Medium priority = 72 hours, 
+  Low priority = 7 days.
+- If a complaint is not resolved within its SLA, it is automatically escalated to 
+  senior officials.
+- You can track any complaint anytime using the Complaint ID you received after submission.
+- Each complaint is automatically classified by AI and assigned to the relevant 
+  department and an available officer.
+"""
+
+@app.post("/citizen/ask")
+def citizen_ask(request: CitizenAskRequest):
+    complaint_context = ""
+    if request.complaint_id:
+        doc = complaints_collection.find_one({"complaint_id": request.complaint_id})
+        if doc:
+            complaint_context = f"""
+The citizen's specific complaint (ID: {doc.get('complaint_id')}):
+- Category: {doc.get('category')}
+- Priority: {doc.get('priority')}
+- Department: {doc.get('department')}
+- Status: {doc.get('status')}
+- Filed: {doc.get('created_at')}
+- SLA Deadline: {doc.get('sla_deadline')}
+- Assigned Officer: {doc.get('assigned_officer_name')}
+"""
+        else:
+            complaint_context = f"\nNote: No complaint found with ID {request.complaint_id}."
+
+    prompt = f"""You are a helpful assistant for CivicFlow, a civic complaint tracking 
+platform. Answer the citizen's question using the information below. Be friendly, 
+clear, and concise. Do NOT reveal any information about other citizens' complaints — 
+you only have access to the general FAQ and the one complaint provided below, if any.
+
+{CIVICFLOW_FAQ}
+{complaint_context}
+
+Citizen's question: "{request.query}"
+
+Answer clearly and helpfully. If the question is about a complaint but no complaint_id 
+was provided or found, politely ask them to provide their Complaint ID."""
+
+    try:
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=400
+        )
+        message = response.choices[0].message
+        answer = message.content or getattr(message, "reasoning_content", "") or "I'm not sure how to answer that right now."
+    except Exception as e:
+        answer = "Sorry, I'm having trouble answering right now. Please try again shortly."
+
+    return {"query": request.query, "answer": answer}

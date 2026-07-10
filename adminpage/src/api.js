@@ -66,26 +66,43 @@ async function request(path, options = {}) {
 }
 
 export const api = {
-  // Page 1: Home (GET /analytics)
-  fetchHomeAnalytics: () => request("/analytics"),
-
-  // Page 2: Submit Complaint (POST /complaints)
-  submitComplaint: (data) =>
-    request("/complaints", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-
-  // Page 3: Track Complaint details (GET /complaints/{id})
+  // Complaint details (GET /complaints/{id}) — used by DetailDrawer
   fetchComplaint: (id) => request(`/complaints/${encodeURIComponent(id)}`),
 
-  // Page 4: AI Assistant (POST /citizen/ask)
-  askAssistant: (query, complaintId = null) =>
-    request("/citizen/ask", {
-      method: "POST",
+  // Admin list (GET /admin/complaints)
+  fetchAdminComplaints: (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.status) params.append("status", filters.status);
+    if (filters.category) params.append("category", filters.category);
+    if (filters.department) params.append("department", filters.department);
+    if (filters.priority) params.append("priority", filters.priority);
+    
+    return request(`/admin/complaints?${params.toString()}`);
+  },
+
+  // Search complaints (GET /search)
+  searchComplaints: (searchParams = {}) => {
+    const params = new URLSearchParams();
+    if (searchParams.q) params.append("q", searchParams.q);
+    if (searchParams.location) params.append("location", searchParams.location);
+    
+    return request(`/search?${params.toString()}`);
+  },
+
+  // AI Agent logs (GET /complaints/{id}/agent-log)
+  fetchAgentLog: (id) => request(`/complaints/${encodeURIComponent(id)}/agent-log`),
+
+  // Update status (PATCH /complaints/{id})
+  updateComplaintStatus: (id, newStatus, remarks = "", updatedBy = "admin") =>
+    request(`/complaints/${encodeURIComponent(id)}`, {
+      method: "PATCH",
       body: JSON.stringify({
-        query,
-        complaint_id: complaintId,
+        new_status: newStatus,
+        remarks,
+        updated_by: updatedBy,
       }),
     }),
+
+  // Full Analytics (GET /analytics)
+  fetchAnalytics: () => request("/analytics"),
 };

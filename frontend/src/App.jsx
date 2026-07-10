@@ -2,18 +2,18 @@ import React, { useState, useEffect } from "react";
 import Home from "./components/Home";
 import SubmitComplaint from "./components/SubmitComplaint";
 import TrackComplaint from "./components/TrackComplaint";
-import AdminDashboard from "./components/AdminDashboard";
+import AIAssistant from "./components/AIAssistant";
 import { api } from "./api";
 import { 
   Home as HomeIcon, 
   PlusCircle, 
   Search, 
-  ShieldAlert, 
   AlertTriangle, 
   Menu, 
   X,
   Building,
-  HelpCircle
+  HelpCircle,
+  MessageSquare
 } from "lucide-react";
 
 export default function App() {
@@ -69,7 +69,7 @@ export default function App() {
       home: "CivicFlow - Grievance Resolution & Tracking",
       submit: "Submit Grievance - CivicFlow",
       track: "Track Grievance - CivicFlow",
-      admin: "Admin Dashboard - CivicFlow",
+      "ai-assistant": "AI Assistant - CivicFlow",
       help: "Help & FAQ - CivicFlow",
     };
     document.title = titles[currentPage] || "CivicFlow";
@@ -89,8 +89,8 @@ export default function App() {
         return <SubmitComplaint onNavigate={navigate} />;
       case "track":
         return <TrackComplaint params={pageParams} />;
-      case "admin":
-        return <AdminDashboard />;
+      case "ai-assistant":
+        return <AIAssistant />;
       case "help":
         return <HelpPage />;
       default:
@@ -155,13 +155,13 @@ export default function App() {
               </li>
               <li>
                 <span
-                  className={`nav-item ${currentPage === "admin" ? "active" : ""}`}
-                  onClick={() => navigate("admin")}
-                  id="nav-link-admin"
+                  className={`nav-item ${currentPage === "ai-assistant" ? "active" : ""}`}
+                  onClick={() => navigate("ai-assistant")}
+                  id="nav-link-ai-assistant"
                   style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
                 >
-                  <ShieldAlert size={16} />
-                  Admin Dashboard
+                  <MessageSquare size={16} />
+                  AI Assistant
                 </span>
               </li>
             </ul>
@@ -176,7 +176,7 @@ export default function App() {
 
       {/* Floating Bottom Nav for Mobile */}
       <nav className="mobile-bottom-nav" role="navigation">
-        <div className="bottom-nav-container">
+        <div className="bottom-nav-container" style={{ gridTemplateColumns: "repeat(5, 1fr)" }}>
           <div
             className={`bottom-nav-item ${currentPage === "home" ? "active" : ""}`}
             onClick={() => navigate("home")}
@@ -207,12 +207,12 @@ export default function App() {
           </div>
 
           <div
-            className={`bottom-nav-item ${currentPage === "admin" ? "active" : ""}`}
-            onClick={() => navigate("admin")}
-            id="mobile-nav-link-admin"
+            className={`bottom-nav-item ${currentPage === "ai-assistant" ? "active" : ""}`}
+            onClick={() => navigate("ai-assistant")}
+            id="mobile-nav-link-ai-assistant"
           >
-            <ShieldAlert size={20} />
-            <span className="bottom-nav-label">Admin</span>
+            <MessageSquare size={20} />
+            <span className="bottom-nav-label">AI</span>
           </div>
 
           <div
@@ -239,18 +239,18 @@ export default function App() {
 
 function HelpPage() {
   return (
-    <div className="help-container card" id="help-page-view" style={{ maxWidth: "600px", margin: "0 auto" }}>
+    <div className="help-container card" id="help-page-view">
       <h2 style={{ marginBottom: "16px", display: "flex", alignItems: "center", gap: "10px" }}>
         <HelpCircle size={28} style={{ color: "var(--primary)" }} />
         Help & Information
       </h2>
-      <p style={{ color: "var(--text-muted)", marginBottom: "24px" }}>
+      <p className="page-subtitle" style={{ marginBottom: "24px" }}>
         Welcome to CivicFlow. This portal allows you to report civic issues and track their resolution in real time.
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        <div style={{ display: "flex", gap: "12px" }}>
-          <div className="logo-icon" style={{ flexShrink: 0, width: "32px", height: "32px", fontSize: "1rem" }}>1</div>
+        <div className="help-step-row">
+          <div className="logo-icon help-step-icon">1</div>
           <div>
             <h4 style={{ fontWeight: 600, color: "var(--text-dark)" }}>Submit a Grievance</h4>
             <p style={{ fontSize: "0.9rem", color: "var(--text-muted)" }}>
@@ -259,8 +259,8 @@ function HelpPage() {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "12px" }}>
-          <div className="logo-icon" style={{ flexShrink: 0, width: "32px", height: "32px", fontSize: "1rem" }}>2</div>
+        <div className="help-step-row">
+          <div className="logo-icon help-step-icon">2</div>
           <div>
             <h4 style={{ fontWeight: 600, color: "var(--text-dark)" }}>Track Status</h4>
             <p style={{ fontSize: "0.9rem", color: "var(--text-muted)" }}>
@@ -269,8 +269,8 @@ function HelpPage() {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "12px" }}>
-          <div className="logo-icon" style={{ flexShrink: 0, width: "32px", height: "32px", fontSize: "1rem" }}>3</div>
+        <div className="help-step-row">
+          <div className="logo-icon help-step-icon">3</div>
           <div>
             <h4 style={{ fontWeight: 600, color: "var(--text-dark)" }}>Automated SLA & AI Agent Reviews</h4>
             <p style={{ fontSize: "0.9rem", color: "var(--text-muted)" }}>

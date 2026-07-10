@@ -49,7 +49,7 @@ export default function Home({ onNavigate }) {
 
       {loading ? (
         <div className="home-stats-strip" style={{ justifyContent: "center" }}>
-          <div className="skeleton-row" style={{ width: "220px", height: "1.5rem" }}></div>
+          <div className="skeleton-row" style={{ width: "60%", height: "1.5rem" }}></div>
         </div>
       ) : totalComplaints !== null ? (
         <div className="home-stats-strip" id="home-stats-display" style={{ margin: "2rem auto" }}>
@@ -65,12 +65,12 @@ export default function Home({ onNavigate }) {
 
       {/* How it Works Section */}
       <div className="how-it-works" style={{ marginTop: "4rem", width: "100%" }}>
-        <h2 style={{ fontFamily: "Outfit", fontSize: "1.6rem", marginBottom: "1.5rem", color: "var(--text-dark)", textAlign: "center" }}>
+        <h2 className="how-it-works-title">
           How it works
         </h2>
-        <div className="steps-grid" style={{ display: "flex", gap: "20px", justifyContent: "space-between", flexWrap: "wrap" }}>
-          <div className="step-card card" style={{ flex: "1 1 200px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "20px", marginBottom: 0 }}>
-            <div className="logo-icon" style={{ marginBottom: "12px", backgroundColor: "var(--primary-light)", color: "var(--primary-dark)", width: "40px", height: "40px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div className="steps-grid">
+          <div className="step-card card">
+            <div className="step-icon" style={{ backgroundColor: "var(--primary-light)", color: "var(--primary-dark)" }}>
               <PlusCircle size={20} />
             </div>
             <h3 style={{ fontSize: "1.05rem", marginBottom: "8px", fontWeight: 700 }}>1. Submit</h3>
@@ -79,8 +79,8 @@ export default function Home({ onNavigate }) {
             </p>
           </div>
 
-          <div className="step-card card" style={{ flex: "1 1 200px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "20px", marginBottom: 0 }}>
-            <div className="logo-icon" style={{ marginBottom: "12px", backgroundColor: "rgba(168, 85, 247, 0.15)", color: "#6b21a8", width: "40px", height: "40px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="step-card card">
+            <div className="step-icon" style={{ backgroundColor: "rgba(168, 85, 247, 0.15)", color: "#6b21a8" }}>
               <Sparkles size={20} />
             </div>
             <h3 style={{ fontSize: "1.05rem", marginBottom: "8px", fontWeight: 700 }}>2. AI Dispatch</h3>
@@ -89,8 +89,8 @@ export default function Home({ onNavigate }) {
             </p>
           </div>
 
-          <div className="step-card card" style={{ flex: "1 1 200px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "20px", marginBottom: 0 }}>
-            <div className="logo-icon" style={{ marginBottom: "12px", backgroundColor: "rgba(14, 165, 233, 0.15)", color: "#0369a1", width: "40px", height: "40px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div className="step-card card">
+            <div className="step-icon" style={{ backgroundColor: "rgba(14, 165, 233, 0.15)", color: "#0369a1" }}>
               <TrendingUp size={20} />
             </div>
             <h3 style={{ fontSize: "1.05rem", marginBottom: "8px", fontWeight: 700 }}>3. Track</h3>
