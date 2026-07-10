@@ -18,8 +18,8 @@ from email_service import send_complaint_email
 from agent_service import agent_decide_action
 app = FastAPI()
 
-client = MongoClient(os.getenv("MONGO_URI"))
-db = client["civicflow"]
+mongo_client = MongoClient(os.getenv("MONGO_URI"))
+db = mongo_client["civicflow"]
 complaints_collection = db["complaints"]
 officers_collection = db["officers"]
 
@@ -474,7 +474,7 @@ def trigger_agent_review():
 @app.get("/health")
 def health_check():
     try:
-        client.admin.command("ping")
+        mongo_client.admin.command("ping")
         db_status = "connected"
     except Exception as e:
         db_status = f"error: {str(e)}"
