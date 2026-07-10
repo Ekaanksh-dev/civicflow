@@ -1,4 +1,30 @@
-const BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8001";
+const getBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  if (typeof window !== "undefined" && window.location) {
+    const origin = window.location.origin;
+    const hostname = window.location.hostname;
+    
+    // If we're on localhost, target port 8001
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return `http://${hostname}:8001`;
+    }
+    
+    // Support port forwarding environments
+    if (origin.includes("5173")) {
+      return origin.replace("5173", "8001");
+    }
+    
+    // Fallback to same hostname on port 8001
+    if (window.location.port) {
+      return `${window.location.protocol}//${hostname}:8001`;
+    }
+  }
+  return "http://127.0.0.1:8001";
+};
+
+const BASE_URL = getBaseUrl();
 
 async function request(path, options = {}) {
   const url = `${BASE_URL}${path}`;
