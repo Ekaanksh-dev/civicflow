@@ -12,7 +12,7 @@ import asyncio
 from ai_service import client, MODEL
 from contextlib import asynccontextmanager
 from typing import Optional
-load_dotenv()
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
 from fastapi.middleware.cors import CORSMiddleware
 from email_service import send_complaint_email
 from agent_service import agent_decide_action
@@ -217,6 +217,10 @@ def submit_complaint(complaint: ComplaintRequest):
     if complaint.email:
         email_sent = send_complaint_email(
             complaint.email, complaint_id, category, priority, doc["department"]
+        )
+        complaints_collection.update_one(
+            {"complaint_id": complaint_id},
+            {"$set": {"email_sent": email_sent}}
         )
 
     return {
