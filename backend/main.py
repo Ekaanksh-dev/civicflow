@@ -240,6 +240,8 @@ def track_complaint(complaint_id: str):
     return {
         "complaint_id": doc["complaint_id"],
         "citizen_name": doc["citizen_name"],
+        "contact_info": doc.get("contact_info"),
+        "email": doc.get("email"),
         "category": doc["category"],
         "priority": doc["priority"],
         "department": doc["department"],
@@ -249,15 +251,6 @@ def track_complaint(complaint_id: str):
         "updated_at": doc["updated_at"],
         "sla_deadline": doc["sla_deadline"],
         "timeline": doc.get("status_logs", [])
-    }
-    complaints_collection.insert_one(doc)
-
-    return {
-        "complaint_id": complaint_id,
-        "category": doc["category"],
-        "priority": doc["priority"],
-        "department": doc["department"],
-        "status": doc["status"]
     }
 
 @app.patch("/complaints/{complaint_id}")
