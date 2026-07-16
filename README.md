@@ -23,7 +23,7 @@ Citizens describe their complaint in plain language. An AI reads it, figures out
 We split this into three pieces on purpose:
 - **`backend/`** — FastAPI + MongoDB, does all the actual work
 - **`frontend/`** — the citizen-facing app (Home, Submit, Track, AI Assistant)
-- **`adminpage/`** — a separate app just for officials (Dashboard, Analytics)
+- **`adminpage/`** — a separate app just for officials (Dashboard, Analytics),pass: civicflow2026admin
 
 Keeping citizen and admin interfaces as genuinely separate apps meant we could keep the public-facing side simple and fast, while giving admins a denser, more operational view — without either one compromising the other.
 
